@@ -70,7 +70,7 @@ center 0.50 · repel 10.30 · link 0.68 · distance 172 · cohesion 0.18
 - Deterministic hierarchy-aware seeds, then a lightweight custom simulation.
 - Index-tree springs define the structure; note-home links are local; shared-note dotted links carry **zero spring force**.
 - There is no persistent pin. A focused tag is `focusLocked` while focused; dragged nodes are held only during the gesture.
-- During focus, relevant tags/notes get a higher collision/spring priority and z-index; unrelated tags are weak and sit below. Clearing focus removes the priority and runs a dedicated collision-spread pass.
+- During focus, relevant tags/notes render above unrelated tags; relevant↔irrelevant pairs are skipped by repulsion, springs, and AABB collision, so the focused branch can pass over unrelated stations. Clearing focus removes the hierarchy and runs a 16-pass collision spread before the normal simulation resumes.
 - The canvas is unbounded, with an infinite CSS dot grid and no minimap.
 - Tag ports are rectangular, one per tag, and all incident edges terminate on the port face.
 - Tag box metrics are observed with `ResizeObserver`, so ports stay attached as stations expand on hover/LOD.

@@ -929,6 +929,12 @@ function applyFocusRanks(nodes) {
   return relations;
 }
 
+function sameFocusLayer(a, b) {
+  const pa = a.focusRank || 1;
+  const pb = b.focusRank || 1;
+  return (pa > 0.5) === (pb > 0.5);
+}
+
 function stepGraph(graph, alpha) {
   if (!graph) return;
   const { nodes } = graph;
@@ -986,6 +992,7 @@ function stepGraph(graph, alpha) {
     const a = nodes[i];
     for (let j = i + 1; j < nodes.length; j += 1) {
       const b = nodes[j];
+      if (!sameFocusLayer(a, b)) continue;
       const acx = nodeCx(a);
       const bcx = nodeCx(b);
       let dx = bcx - acx;
@@ -1045,6 +1052,7 @@ function stepGraph(graph, alpha) {
     const target =
       physics.distance *
       (edge.type === "note" ? 1.05 : 1.55);
+    if (!sameFocusLayer(a, b)) continue;
     const force = ((dist - target) / dist) * linkK * edge.strength * alpha;
     const pa = a.focusRank || 1;
     const pb = b.focusRank || 1;
@@ -1143,6 +1151,9 @@ function resolveCollisions(graph, iterations = 2) {
         if (overlapX <= 0 || overlapY <= 0) continue;
         const sx = dx === 0 ? (i % 2 ? 1 : -1) : Math.sign(dx);
         const sy = dy === 0 ? (j % 2 ? 1 : -1) : Math.sign(dy);
+        const pa = a.focusRank || 1;
+        const pb = b.focusRank || 1;
+        if ((pa > 0.5) !== (pb > 0.5)) continue;
         const ax = a.dragging || a.focusLocked;
         const bx = b.dragging || b.focusLocked;
         if (ax && bx) continue;
@@ -1156,8 +1167,6 @@ function resolveCollisions(graph, iterations = 2) {
           if (xFirst) a.x -= s * overlap;
           else a.y -= s * overlap;
         } else {
-          const pa = a.focusRank || 1;
-          const pb = b.focusRank || 1;
           const aw = (2 * pb) / (pa + pb);
           const bw = (2 * pa) / (pa + pb);
           if (xFirst) {
@@ -2693,7 +2702,7 @@ function clearFocus() {
   if (state.graph) {
     // The focus hierarchy has been removed; push any overlapped cards apart
     // before the next physics tick, then keep settling.
-    resolveCollisions(state.graph, 6);
+    resolveCollisions(state.graph, 16);
     syncGraphPositions();
     updateGraphDom();
   }
