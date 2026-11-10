@@ -570,44 +570,14 @@ function tagMetaRight(tag, active) {
 
 function focusRelations() {
   const focus = state.focus ? model.tagsByName.get(state.focus) : null;
-  if (!focus) {
-    return {
-      focus: null,
-      ancestors: new Set(),
-      descendants: new Set(),
-      siblings: new Set(),
-      relevant: new Set(),
-    };
-  }
+  if (!focus) return { focus: null, ancestors: new Set(), descendants: new Set() };
   const ancestors = new Set(tagParents(focus, model.tagsByName));
   const descendants = new Set(
     tagSubtree(focus, model.tagsByName)
       .map((t) => t.name)
       .filter((name) => name !== focus.name)
   );
-  const siblings = new Set();
-  for (const parentName of [focus.parent, ...ancestors]) {
-    const parent = parentName ? model.tagsByName.get(parentName) : null;
-    if (!parent) continue;
-    for (const child of parent.children) {
-      if (child !== focus.name) siblings.add(child);
-    }
-  }
-  const relevant = new Set([focus.name, ...ancestors, ...descendants, ...siblings]);
-  // A focused branch note can carry secondary memberships. Those tags and
-  // their ancestor roots are part of the focus context too (e.g. focusing
-  // Math must bring in AI/Language/ML via Compression of language).
-  for (const title of focus.branchNotes) {
-    const note = model.notesByTitle.get(title);
-    if (!note) continue;
-    for (const tagName of note.tags) {
-      const tag = model.tagsByName.get(tagName);
-      if (!tag || tag.meta) continue;
-      relevant.add(tagName);
-      for (const parentName of tagParents(tag, model.tagsByName)) relevant.add(parentName);
-    }
-  }
-  return { focus, ancestors, descendants, siblings, relevant };
+  return { focus, ancestors, descendants };
 }
 
 function tagCardHtml(tag, { node, focus = false, relation = null }) {
@@ -618,7 +588,6 @@ function tagCardHtml(tag, { node, focus = false, relation = null }) {
   if (focus) classes.push("hub");
   if (relation?.ancestor) classes.push("is-ancestor");
   if (relation?.descendant) classes.push("is-descendant");
-  if (relation?.relevant) classes.push("is-relevant");
   if (tag.synthetic) classes.push("synthetic");
   const metaLeft = activeTagMeta(tag);
   const right = tagMetaRight(tag, true);
@@ -653,7 +622,6 @@ function ambientTagHtml(tag, node, { lastFocus = false, relation = null } = {}) 
   if (lastFocus && !state.focus) classes.push("last-focus");
   if (relation?.ancestor) classes.push("is-ancestor");
   if (relation?.descendant) classes.push("is-descendant");
-  if (relation?.relevant) classes.push("is-relevant");
   const synth = tag.synthetic ? synthMark() : "";
   const index = tag.isIndex ? `<span class="station-index">INDEX</span>` : "";
   const last = lastFocus && !state.focus ? `<span class="station-last">last</span>` : "";
@@ -937,35 +905,9 @@ function nodeCx(node) {
   return node.labelSide === "left" ? node.x - 104 : node.x + 104;
 }
 
-function applyFocusRanks(nodes) {
-  const relations = focusRelations();
-  const hasFocus = Boolean(relations.focus);
-  for (const node of nodes) {
-    if (!hasFocus) {
-      node.focusRank = 1;
-    } else if (node.kind === "note") {
-      // Notes are the focused branch; keep them above and harder to displace.
-      node.focusRank = 1.4;
-    } else if (node.kind === "tag") {
-      const name = node.tag?.name;
-      node.focusRank = relations.relevant.has(name) ? 1 : 0.15;
-    } else {
-      node.focusRank = 1;
-    }
-  }
-  return relations;
-}
-
-function sameFocusLayer(a, b) {
-  const pa = a.focusRank || 1;
-  const pb = b.focusRank || 1;
-  return (pa > 0.5) === (pb > 0.5);
-}
-
 function stepGraph(graph, alpha) {
   if (!graph) return;
   const { nodes } = graph;
-  applyFocusRanks(nodes);
   const physics = state.physics;
   const cx = WORLD.w / 2;
   const cy = WORLD.h / 2;
@@ -1019,7 +961,6 @@ function stepGraph(graph, alpha) {
     const a = nodes[i];
     for (let j = i + 1; j < nodes.length; j += 1) {
       const b = nodes[j];
-      if (!sameFocusLayer(a, b)) continue;
       const acx = nodeCx(a);
       const bcx = nodeCx(b);
       let dx = bcx - acx;
@@ -1031,18 +972,14 @@ function stepGraph(graph, alpha) {
       const dist2 = Math.max(900, dx * dx + dy * dy);
       const dist = Math.sqrt(dist2);
       const force = Math.min(2.8, (repelK / dist2) * alpha);
-      const pa = a.focusRank || 1;
-      const pb = b.focusRank || 1;
-      const aw = (2 * pb) / (pa + pb);
-      const bw = (2 * pa) / (pa + pb);
 
       if (!a.dragging && !a.focusLocked) {
-        a.vx -= (dx / dist) * force * aw;
-        a.vy -= (dy / dist) * force * aw;
+        a.vx -= (dx / dist) * force;
+        a.vy -= (dy / dist) * force;
       }
       if (!b.dragging && !b.focusLocked) {
-        b.vx += (dx / dist) * force * bw;
-        b.vy += (dy / dist) * force * bw;
+        b.vx += (dx / dist) * force;
+        b.vy += (dy / dist) * force;
       }
 
       // AABB collision for the label/card boxes, keeping the space around
@@ -1054,61 +991,39 @@ function stepGraph(graph, alpha) {
         const sy = dy === 0 ? (j % 2 ? 1 : -1) : Math.sign(dy);
         if (overlapX < overlapY) {
           const push = overlapX * 0.8 * alpha;
-          if (!a.dragging && !a.focusLocked) a.vx -= sx * push * aw;
-          if (!b.dragging && !b.focusLocked) b.vx += sx * push * bw;
+          if (!a.dragging && !a.focusLocked) a.vx -= sx * push;
+          if (!b.dragging && !b.focusLocked) b.vx += sx * push;
         } else {
           const push = overlapY * 0.8 * alpha;
-          if (!a.dragging && !a.focusLocked) a.vy -= sy * push * aw;
-          if (!b.dragging && !b.focusLocked) b.vy += sy * push * bw;
+          if (!a.dragging && !a.focusLocked) a.vy -= sy * push;
+          if (!b.dragging && !b.focusLocked) b.vy += sy * push;
         }
       }
     }
   }
 
   for (const edge of graph.edges) {
+    // Shared-note and note-tag lines are annotation. Notes sit on their
+    // home orbit, tags sit on the tree; neither line drags the other node
+    // into a pile. Only index-tree edges carry spring force.
+    if (edge.type === "affinity") continue;
     const a = graph.byId.get(edge.source);
     const b = graph.byId.get(edge.target);
     if (!a || !b) continue;
-    if (edge.type === "affinity") {
-      // Dotted links stay annotation in the flat graph. Inside a focus they
-      // get a very light spring only when both tags are relevant, which is
-      // what pulls the secondary AI/Language/ML group toward Information
-      // Theory without clustering the whole atlas.
-      if (!state.focus || !sameFocusLayer(a, b)) continue;
-      const adx = b.x - a.x;
-      const ady = b.y - a.y;
-      const adist = Math.max(0.01, Math.sqrt(adx * adx + ady * ady));
-      const atarget = physics.distance * 1.15;
-      const aforce = ((adist - atarget) / adist) * linkK * 0.1 * alpha;
-      if (!a.dragging && !a.focusLocked) {
-        a.vx += adx * aforce;
-        a.vy += ady * aforce;
-      }
-      if (!b.dragging && !b.focusLocked) {
-        b.vx -= adx * aforce;
-        b.vy -= ady * aforce;
-      }
-      continue;
-    }
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const dist = Math.max(0.01, Math.sqrt(dx * dx + dy * dy));
     const target =
       physics.distance *
       (edge.type === "note" ? 1.05 : 1.55);
-    if (!sameFocusLayer(a, b)) continue;
     const force = ((dist - target) / dist) * linkK * edge.strength * alpha;
-    const pa = a.focusRank || 1;
-    const pb = b.focusRank || 1;
-    const aw = (2 * pb) / (pa + pb);
-    const bw = (2 * pa) / (pa + pb);
     if (!a.dragging && !a.focusLocked) {
-      a.vx += dx * force * aw;
-      a.vy += dy * force * aw;
+      a.vx += dx * force;
+      a.vy += dy * force;
     }
     if (!b.dragging && !b.focusLocked) {
-      b.vx -= dx * force * bw;
-      b.vy -= dy * force * bw;
+      b.vx -= dx * force;
+      b.vy -= dy * force;
     }
   }
 
@@ -1182,7 +1097,6 @@ function declutterNoteLabels(graph) {
 }
 
 function resolveCollisions(graph, iterations = 2) {
-  applyFocusRanks(graph.nodes);
   for (let pass = 0; pass < iterations; pass += 1) {
     for (let i = 0; i < graph.nodes.length; i += 1) {
       const a = graph.nodes[i];
@@ -1195,9 +1109,6 @@ function resolveCollisions(graph, iterations = 2) {
         if (overlapX <= 0 || overlapY <= 0) continue;
         const sx = dx === 0 ? (i % 2 ? 1 : -1) : Math.sign(dx);
         const sy = dy === 0 ? (j % 2 ? 1 : -1) : Math.sign(dy);
-        const pa = a.focusRank || 1;
-        const pb = b.focusRank || 1;
-        if ((pa > 0.5) !== (pb > 0.5)) continue;
         const ax = a.dragging || a.focusLocked;
         const bx = b.dragging || b.focusLocked;
         if (ax && bx) continue;
@@ -1211,14 +1122,12 @@ function resolveCollisions(graph, iterations = 2) {
           if (xFirst) a.x -= s * overlap;
           else a.y -= s * overlap;
         } else {
-          const aw = (2 * pb) / (pa + pb);
-          const bw = (2 * pa) / (pa + pb);
           if (xFirst) {
-            a.x -= s * overlap * 0.5 * aw;
-            b.x += s * overlap * 0.5 * bw;
+            a.x -= s * overlap * 0.5;
+            b.x += s * overlap * 0.5;
           } else {
-            a.y -= s * overlap * 0.5 * aw;
-            b.y += s * overlap * 0.5 * bw;
+            a.y -= s * overlap * 0.5;
+            b.y += s * overlap * 0.5;
           }
         }
       }
@@ -1839,7 +1748,6 @@ function atlasHtml() {
       const relation = {
         ancestor: relations.ancestors.has(tag.name),
         descendant: relations.descendants.has(tag.name),
-        relevant: relations.relevant.has(tag.name),
       };
       if (tag.name === state.focus) {
         return tagCardHtml(tag, { node, focus: true, relation });
@@ -1866,7 +1774,7 @@ function atlasHtml() {
     .join("") || "";
 
   return `
-    <div class="atlas-canvas${state.focus ? " has-focus" : ""}" id="atlas-canvas">
+    <div class="atlas-canvas" id="atlas-canvas">
       <div class="canvas-world" style="transform:translate(${state.camera.x}px, ${state.camera.y}px) scale(${state.camera.zoom})">
         <svg class="graph-wires" aria-hidden="true">${edgesHtml(relations)}</svg>
         ${tagNodes}
@@ -2744,13 +2652,6 @@ function clearFocus() {
   state.simAlpha = Math.max(state.simAlpha, 1);
   // Keep the camera; notes disappear, the tag graph closes the gap by force.
   renderAll();
-  if (state.graph) {
-    // The focus hierarchy has been removed; push any overlapped cards apart
-    // before the next physics tick, then keep settling.
-    resolveCollisions(state.graph, 16);
-    syncGraphPositions();
-    updateGraphDom();
-  }
 }
 
 function toggleTheme() {
