@@ -1,4 +1,4 @@
-/* Tag Atlas prototype — interaction + layout overrides */
+/* Tag Atlas — interaction + layout overrides */
 
 html, body {
   width: 100%;
@@ -30,7 +30,7 @@ body {
   overflow: hidden;
 }
 
-/* Let dense prototype panes scroll instead of clipping. */
+/* Let dense panes scroll instead of clipping. */
 .rail-list,
 .inspector,
 .table-scroll,
