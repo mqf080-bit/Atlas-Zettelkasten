@@ -1,0 +1,13 @@
+# Local vault-derived data — never commit
+app/data/vault.json
+
+# Local machine state
+app/.atlas-config.json
+app/.run/
+**/__pycache__/
+*.pyc
+.DS_Store
+
+# Screenshots and historical design frames show a private vault
+app/screens/
+mockups/

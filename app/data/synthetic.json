@@ -1,0 +1,179 @@
+{
+  "tags": [
+    {
+      "name": "Cooking",
+      "isIndex": true,
+      "meta": false,
+      "indexLinks": [
+        "Cooking as compression",
+        "Sourdough starter log"
+      ],
+      "body": "The kitchen as a compression problem: recipes, stocks, starters, and the things they leave out on purpose."
+    },
+    {
+      "name": "Climate",
+      "isIndex": true,
+      "meta": false,
+      "indexLinks": [
+        "Climate models and entropy"
+      ],
+      "body": "Models first, policy second. What the physics can and cannot carry across the gap."
+    },
+    {
+      "name": "Ethics",
+      "isIndex": true,
+      "meta": false,
+      "indexLinks": [
+        "Ethics of recommender systems"
+      ],
+      "body": "Not just right and wrong, but who bears the cost of a system's predictions."
+    },
+    {
+      "name": "Rust",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    },
+    {
+      "name": "Statistics",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    },
+    {
+      "name": "AI",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    },
+    {
+      "name": "Information Theory",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    },
+    {
+      "name": "Language",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    },
+    {
+      "name": "Left",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    },
+    {
+      "name": "Machine Learning",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    },
+    {
+      "name": "Politics",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    },
+    {
+      "name": "Python",
+      "isIndex": false,
+      "meta": false,
+      "indexLinks": [],
+      "body": ""
+    }
+  ],
+  "notes": [
+    {
+      "title": "Cooking as compression",
+      "status": "7th",
+      "tags": [
+        "Cooking",
+        "Information Theory",
+        "Language"
+      ],
+      "links": [
+        "Compression of language"
+      ],
+      "date": "2026-11-02",
+      "excerpt": "A recipe is a compression scheme: it throws away the heat of the pan and the humidity and keeps only the instructions that survive the trip. 'Salt to taste' is not lazy writing, it is a decompression instruction.",
+      "body": "A recipe is a compression scheme. It throws away almost everything about the actual kitchen — how hot the pan really is, how humid the day is, whether my oven runs fifteen degrees cold — and keeps the handful of instructions that survive the trip. What comes out still tastes like dinner, which is the whole trick.\n\nThe mapping is lossy on purpose. 'Salt to taste' is not lazy writing; it is a decompression instruction. It says the missing bits will be supplied by whoever runs the recipe, at render time, with their own tongue and their own salt. A recipe that specified salt down to the grain would be a worse recipe for a home cook and a better one for a factory.\n\nOnce I started looking at it that way, the low-information parts stood out. 'Preheat to 180°C' is almost free: nearly every cake in the book says it. The line worth reading is the one that is not predictable, the one that says the dough should feel like an earlobe, or that the onions need to go one shade darker than I think. That is where the actual information of the recipe sits.\n\nCooking is also where I keep meeting the same shape as the compression of language. A stock is a summary of bones and time; a mother sauce is a prior that makes the next sauce cheaper to describe. Mise en place is tokenization — chop first, so the cooking itself runs as one predictable stream. The starter in the jar is the extreme case: a culture small enough to carry, encoding a whole bakery's worth of behaviour."
+    },
+    {
+      "title": "Sourdough starter log",
+      "status": "raw",
+      "tags": [
+        "Cooking"
+      ],
+      "links": [],
+      "date": "2026-10-28",
+      "excerpt": "A day-by-day log of a rye starter, kept because I want to know whether the thing is alive or whether I am just feeding flour to a jar. Feed ratios, peak times, and the one loaf that actually worked.",
+      "body": "Day 0. 50 g whole rye, 50 g water at 26°C, covered, on the counter. Nothing else. I am keeping this log because I want to know whether the thing is alive or whether I am just feeding flour to a jar.\n\nDay 2. Bubbles, no rise. Smell is yogurt-ish. Fed 1:1:1 at 09:00 and again at 21:00.\n\nDay 3. Doubled in 6 h at 24°C. By evening the smell has gone from yogurt to nail polish remover. That is hunger, not death — it means the culture ate through the flour and is now waiting.\n\nDay 5. 60 g starter, 300 g rye, 300 g water at 24°C. Peak at 5 h 20 min. Baked a loaf at 70% hydration: open crumb, sour but not sharp, crust went soft by hour six. Next time 75% hydration, and bake straight from the fridge so the shape holds."
+    },
+    {
+      "title": "Climate models and entropy",
+      "status": "thesis",
+      "tags": [
+        "Climate",
+        "Information Theory",
+        "Machine Learning"
+      ],
+      "links": [
+        "Entropy"
+      ],
+      "date": "2026-10-19",
+      "excerpt": "A climate model is a compressor with a physics budget: a planet squeezed onto 100 km cells, with clouds written as parameterizations. The spread between models is the entropy of the unresolved scales showing up as uncertainty.",
+      "body": "A climate model is a compressor with a physics budget. It takes a planet and squeezes it onto a grid of cells roughly 100 km across, then writes the parts it cannot resolve — clouds, convection, the boundary layer — as parameterizations: short rules that stand in for the physics it dropped.\n\nThis is why I keep coming back to entropy when I read model papers. The initial state carries a finite amount of information about the future, and every integration step loses some of it. In weather, error doubles in about two days, which is why a ten-day forecast is a guess. Climate is the average of that guess, run long enough that the transient chaos cancels and only the forced response survives.\n\nThe genuinely hard part is that different models with the same forcing disagree, and they disagree most where the parameterizations are doing the most work: clouds and aerosols. That disagreement is not a bug in the code. It is the entropy of the unresolved scales showing up as spread. An ensemble is a way of admitting that the map is lossy and then measuring how much of the loss matters.\n\nSo the honest framing is that a climate model is not a prediction of the future but a compression of the present that we can run forward. The question to ask of a projection is not 'is it true' but 'what was dropped to make it, and does the thing I care about depend on what was dropped'."
+    },
+    {
+      "title": "Climate policy reading",
+      "status": "raw",
+      "tags": [
+        "Climate",
+        "Politics",
+        "Left"
+      ],
+      "links": [],
+      "date": "2026-11-04",
+      "excerpt": "Reading notes on the WGIII summary and carbon border adjustment, mostly to work out who pays for decarbonisation. The mechanism that makes the policy work is also the mechanism that makes it a weapon.",
+      "body": "Reading notes, not an argument yet. Mostly the WGIII summary, two pieces on carbon border adjustment, and a thread of commentary I should probably stop reading.\n\nThe technical part is settled enough for policy. The marginal abatement cost curve is steep at the low end and flat near the target, which means the cheap wins are already taken and the next tonne costs real money. The political part is where the argument actually lives. A carbon price is a price on things people need — heating, transport, food — and the rebate is the only thing that decides who pays.\n\nBorder adjustment is the piece I keep turning over. It protects domestic industry from carbon leakage, and it also hands rich countries a tariff instrument they can aim at anyone's exports. The same mechanism that makes the policy work is the mechanism that makes it a weapon. That is not an argument against it; it is an argument for writing down who gets to pull the trigger.\n\nLeft position, short version: decarbonisation is a distribution question before it is a technology question. The models tell you what is physically available. They do not tell you who gets the bill. I want to read the Just Transition material before I write anything longer."
+    },
+    {
+      "title": "Rust for data pipelines",
+      "status": "3rd",
+      "tags": [
+        "Rust",
+        "Python",
+        "AI"
+      ],
+      "links": [],
+      "date": "2026-11-06",
+      "excerpt": "Moving the ingestion layer of a 40 GB/day pipeline to Rust while keeping the model in Python. The borrow checker is annoying in exactly the place where pipelines are dangerous.",
+      "body": "The pipeline was 40 GB of JSONL a day, and Python was spending most of its time in the parser, not in the model. I moved the ingestion layer to Rust and kept everything else in Python. The split is the interesting part, not the language.\n\nRust's borrow checker is annoying in exactly the place where pipelines are actually dangerous. In Python I pass a buffer around and trust that nobody mutates it while a worker reads it. In Rust the compiler makes me say who owns the buffer and for how long. The first version took a day longer to write and had none of the aliasing bugs my Python version had.\n\nConcretely: serde for parsing, arrow-rs and parquet for the columnar hop, rayon for the per-shard map, and PyO3 with maturin for the boundary. The extension exposes one function that takes a path and returns a record batch. Python never sees the 40 GB; it sees batches.\n\nWhere I would not use it: exploration, glue, anything I am going to rewrite next week. Compile time is a real cost, and the ecosystem for the long tail of scientific formats is thinner. My rule now is Rust for the hot loop and the parser, Python for everything I have to think in."
+    },
+    {
+      "title": "Ethics of recommender systems",
+      "status": "thesis",
+      "tags": [
+        "Ethics",
+        "AI",
+        "Politics"
+      ],
+      "links": [
+        "3 International Politics Critique"
+      ],
+      "date": "2026-10-30",
+      "excerpt": "Recommender ethics is usually argued as a content problem, but a recommender is an institution that decides what gets seen, with a purpose baked into its objective. The real question is who bears the cost of prediction.",
+      "body": "The usual ethics conversation about recommenders is about content: what gets taken down, what gets promoted, whether the model is biased. I think that framing misses the more basic thing, which is that a recommender is an institution that decides what gets seen, and it does so with a purpose baked into its objective.\n\nThe objective is engagement, which is a proxy for attention, which is the thing being sold. Once you write that down, the ethics questions stop being about individual bad recommendations and become about who bears the cost of prediction. The user pays in time, the advertiser pays in money, and the recommendation itself is a compression of everyone else's behaviour.\n\nThis is where the critical theory reading earns its place. Critical theory insists that a theory is never neutral: it serves people and purposes and always has a perspective. A recommender is exactly that, a theory of what you will click, written by someone, optimized for someone. The claim that it merely reflects preferences is the same move as claiming a model is objective because it is mathematical.\n\nSo the design question I care about is not 'how do we make the ranking fairer' but 'who gets to write the objective, and what is the recourse when it is wrong'. Fairness metrics are a start, and they are also a way of making a political choice look like a hyperparameter. The systems that scare me are the ones where the objective is nobody's job to defend."
+    }
+  ]
+}
