@@ -57,7 +57,7 @@ Notes are read-only inputs. The app writes only its own local config and snapsho
 3. Shallowest inherited index parent.
 4. First remaining direct tag.
 
-Ancestor collapse removes a parent from direct memberships when the note also links its child. Full semantics: [VAULT_CONVENTION.md](VAULT_CONVENTION.md).
+Ancestor collapse removes a parent from direct memberships when the note also links its child. External notes are a source type (`kind: "external"`), excluded from maturity counts and presented with the pink external ring/group. Full semantics: [VAULT_CONVENTION.md](VAULT_CONVENTION.md).
 
 ## Force layout
 

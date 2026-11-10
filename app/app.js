@@ -15,6 +15,7 @@ import {
   fmtDate,
   ringSVG,
   barSegments,
+  externalColor,
   statusLabel,
   statusStage,
   synthBadge,
@@ -91,6 +92,22 @@ const state = {
 
 const STATUS_ORDER = ["raw", "3rd", "5th", "7th", "thesis"];
 const STATUS_NAMES = { raw: "#RAW", "3rd": "#3RD", "5th": "#5TH", "7th": "#7TH", thesis: "#THESIS" };
+
+function noteIsUnfiled(note) {
+  return !note.home && !note.status && note.kind !== "external";
+}
+
+function noteRingHtml(note, size = 14, selected = false) {
+  if (note.kind === "external") return ringSVG(note.status, size, selected, "external");
+  if (note.status) return ringSVG(note.status, size, selected);
+  return `<span class="ring-unfiled"></span>`;
+}
+
+function noteTypeText(note) {
+  if (note.kind === "external") return "external · source";
+  if (note.status) return `${statusLabel(note.status)} · ${statusStage(note.status)} / 5`;
+  return "unfiled";
+}
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -457,7 +474,7 @@ function matchNote(note, filters) {
     let ok = false;
     if (v === "bridge") ok = note.bridge;
     else if (v === "unindexed") ok = noteIsUnindexed(note);
-    else if (v === "unfiled") ok = !note.home;
+    else if (v === "unfiled") ok = noteIsUnfiled(note);
     else if (v === "index") ok = Boolean(model.tagsByName.get(note.home)?.isIndex);
     else if (v === "external") ok = note.kind === "external";
     else if (v === "note") ok = note.kind === "note";
@@ -658,7 +675,7 @@ function noteHtml(note, node, { selected, showHome, dim }) {
   const sub = "";
   return `
     <div class="${classes.join(" ")}" style="left:${node.x}px;top:${node.y}px" data-note="${esc(note.title)}" data-node-id="${esc(node.id)}">
-      ${ringSVG(note.status, selected ? 24 : 16, selected)}
+      ${noteRingHtml(note, selected ? 24 : 16, selected)}
       <div class="${labelClass}">
         <span class="n-title">${esc(note.title)}${synth}</span>
         ${homeLine}
@@ -1809,27 +1826,28 @@ function curationFor(note) {
 function indexRowsHtml(notes) {
   const groups = new Map();
   for (const note of notes) {
-    const key = note.status || "unfiled";
+    const key = note.kind === "external" ? "external" : note.status || "unfiled";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(note);
   }
-  const order = [...STATUS_ORDER, "unfiled"];
+  const order = [...STATUS_ORDER, "external", "unfiled"];
   const html = [];
   for (const key of order) {
     const list = groups.get(key);
     if (!list || !list.length) continue;
     list.sort((a, b) => a.title.localeCompare(b.title));
-    const color = key === "unfiled" ? null : statusColor(key);
+    const color = key === "unfiled" ? null : key === "external" ? externalColor() : statusColor(key);
+    const groupName = key === "unfiled" ? "UNFILED" : key === "external" ? "EXTERNAL" : STATUS_NAMES[key];
     html.push(`
       <div class="table-group">
         ${color ? `<span class="sw" style="background:${color}"></span>` : `<span class="sw" style="border:1px solid var(--ink-3)"></span>`}
-        <span>${key === "unfiled" ? "UNFILED" : STATUS_NAMES[key]}</span>
+        <span>${groupName}</span>
         <span class="count">${list.length}</span>
         <span class="rule"></span>
       </div>`);
     for (const note of list) {
       const cur = curationFor(note);
-      const ring = note.status ? ringSVG(note.status, 14, false) : `<span class="ring-unfiled"></span>`;
+      const ring = noteRingHtml(note, 14, false);
       const homeCell = `${noteHomeHtml(note, model.tagsByName)}${note.tags.length > 1 ? `<span class="plus">+${note.tags.length - 1}</span>` : ""}`;
       const synth = note.synthetic ? synthBadge() : "";
       html.push(`
@@ -1939,7 +1957,7 @@ function bridgesHtml() {
             const synth = note.synthetic ? synthBadge() : "";
             return `
               <div class="bridge-row${note.title === state.selected ? " selected" : ""}" data-note="${esc(note.title)}">
-                <div class="cell"><span class="note-ring">${ringSVG(note.status, 14, false)}</span></div>
+                <div class="cell"><span class="note-ring">${noteRingHtml(note, 14, false)}</span></div>
                 <div class="cell row-title" title="${esc(note.title)}">${synth}${esc(note.title)}</div>
                 <div class="cell bridge-home">${homeMark()}${esc(note.home || "—")}</div>
                 <div class="cell bridge-tags">${note.bridgeTags.map((t) => `<span>${esc(t)}</span>`).join('<span class="sep">·</span>')}</div>
@@ -2103,7 +2121,7 @@ function tagPanelHtml(tag) {
     <button class="panel-note" data-note="${esc(note.title)}">
       <span class="panel-note-title">${esc(note.title)}</span>
       <span class="panel-note-meta">
-        ${note.status ? `${statusLabel(note.status)} · ${statusStage(note.status)} / 5` : "unfiled"}
+        ${noteTypeText(note)}
         ${withHome && note.home ? ` · home ${esc(note.home)}` : ""}
         ${note.synthetic ? " · synth" : ""}
       </span>
@@ -2209,10 +2227,10 @@ function noteInspectorHtml(note) {
     <div>
       <h1 class="insp-title">${esc(note.title)}</h1>
       <div class="insp-status">
-        <span class="status-badge">
-          <span style="width:12px;height:12px;display:inline-block">${ringSVG(note.status, 12, false)}</span>
-          ${statusLabel(note.status)}
-          <span class="stage">${statusStage(note.status)} / 5</span>
+        <span class="status-badge${note.kind === "external" ? " external" : ""}">
+          <span style="width:12px;height:12px;display:inline-block">${noteRingHtml(note, 12, false)}</span>
+          ${note.kind === "external" ? "external" : statusLabel(note.status)}
+          <span class="stage">${note.kind === "external" ? "source" : `${statusStage(note.status)} / 5`}</span>
         </span>
         ${note.synthetic ? `<span class="badge warn">Synthetic</span>` : ""}
         ${reAnchored ? `<span class="badge">Re-anchored · ${esc(state.focus)}</span>` : ""}
@@ -2320,6 +2338,7 @@ function renderFooter() {
     </div>
     <button class="footer-mid" data-action="all-notes">${model.counts.notes} notes · ${model.counts.tags} tags · ${model.counts.indexes} indexes</button>
     <div class="footer-right">
+      ${model.counts.external ? `<button class="review-flag" data-action="show-external"><span class="external-dot" style="background:${externalColor()}"></span>${model.counts.external} external</button>` : ""}
       <button class="review-flag" data-action="show-unindexed"><span class="diamond"></span>${model.counts.unindexedNotes} unindexed</button>
       <span class="egg-mark" title="Butcher’s chart"></span>
     </div>`;
@@ -2435,7 +2454,7 @@ function quickItems() {
       kind: "note",
       title: note.title,
       path: note.path || note.title,
-      status: note.status || "unfiled",
+      status: note.kind === "external" ? "external" : note.status || "unfiled",
       synthetic: note.synthetic,
       note,
     });
@@ -2498,7 +2517,7 @@ function renderQuickSwitch() {
       const active = index === state.quickIndex ? " active" : "";
       return `<button class="quick-row${active}" data-quick-kind="${esc(item.kind)}" data-quick-title="${esc(item.title)}">
         <span class="quick-path">${esc(item.path)}</span>
-        <span class="quick-badge">${item.kind === "tag" ? "TAG" : "NOTE"}</span>
+        <span class="quick-badge${item.kind === "note" && item.note?.kind === "external" ? " external" : ""}">${item.kind === "tag" ? "TAG" : item.note?.kind === "external" ? "EXT" : "NOTE"}</span>
         ${item.synthetic ? `<span class="quick-synth">SYNTH</span>` : ""}
       </button>`;
     })
@@ -2749,6 +2768,14 @@ function showUnindexed() {
   renderAll();
 }
 
+function showExternal() {
+  state.view = "index";
+  state.focus = null;
+  state.selected = null;
+  state.query = "is:external";
+  renderAll();
+}
+
 
 
 function resetLayout() {
@@ -2822,6 +2849,9 @@ function handleAction(action) {
       break;
     case "show-unindexed":
       showUnindexed();
+      break;
+    case "show-external":
+      showExternal();
       break;
     case "clear-selection":
       clearSelection();
@@ -2902,14 +2932,14 @@ function tagTooltipHtml(tag) {
 }
 
 function noteTooltipHtml(note) {
-  const status = note.status ? `${statusLabel(note.status)} · ${statusStage(note.status)} / 5` : "unfiled";
+  const status = note.kind === "external" ? "external · source" : note.status ? `${statusLabel(note.status)} · ${statusStage(note.status)} / 5` : "unfiled";
   const bridge = note.bridge ? `<span><b>span ${note.span}</b> bridge</span>` : "";
   return `
     <div class="tooltip-eyebrow">Note ${note.synthetic ? "· synth" : ""}</div>
     <div class="tooltip-title">${esc(note.title)}</div>
     <div class="tooltip-meta">
       <span>${esc(status)}</span>
-      ${note.home ? `<span>home <b>${esc(note.home)}</b></span>` : `<span>unfiled</span>`}
+      ${note.home ? `<span>home <b>${esc(note.home)}</b></span>` : note.kind === "external" ? `<span>external</span>` : `<span>unfiled</span>`}
       <span><b>${note.tags.length}</b> tags</span>
       ${bridge}
     </div>

@@ -40,9 +40,20 @@ function arcPath(cx, cy, r, a0, a1) {
   return `M ${x0.toFixed(3)} ${y0.toFixed(3)} A ${r} ${r} 0 0 1 ${x1.toFixed(3)} ${y1.toFixed(3)}`;
 }
 
-export function ringSVG(statusKey, size = 16, selected = false) {
-  const st = STATUS[statusKey] || STATUS.raw;
+export function externalColor() {
+  return document.body.dataset.theme === "light" ? "#c77ad0" : "#ffb8fd";
+}
+
+export function ringSVG(statusKey, size = 16, selected = false, kind = null) {
   const isLight = document.body.dataset.theme === "light";
+  if (kind === "external") {
+    const color = externalColor();
+    const extra = selected
+      ? `<circle cx="10" cy="10" r="9.0" fill="none" stroke="var(--ink)" stroke-width="0.8" opacity="0.24"/>`
+      : `<circle cx="10" cy="10" r="8.55" fill="none" stroke="var(--ring-edge)" stroke-width="0.55" opacity="0.55"/>`;
+    return `<svg viewBox="0 0 20 20" width="${size}" height="${size}" aria-hidden="true"><circle cx="10" cy="10" r="7.2" fill="none" stroke="${color}" stroke-width="${selected ? 2.6 : 2.3}"/><circle cx="10" cy="10" r="${selected ? 3.1 : 2.7}" fill="${color}" stroke="var(--ring-edge)" stroke-width="0.45"/>${extra}</svg>`;
+  }
+  const st = STATUS[statusKey] || STATUS.raw;
   const arcColor = isLight ? (RING_LIGHT[statusKey] || st.hex) : st.hex;
   const cx = 10;
   const cy = 10;

@@ -14,6 +14,7 @@ Tag Atlas is not another force-directed graph of every note. It treats your tag 
 - **Atlas** — tags as a hierarchy, content notes as memberships, one sliding port per tag for every edge.
 - **Index** — all notes grouped by lifecycle status, with home, curation, and paths.
 - **Bridges** — notes spanning multiple non-meta categories.
+- **External sources** — `#external` notes are a type, not a maturity stage: pink ring, dedicated Index group, no unfiled/no maturity count.
 - **Search** — `Ctrl+O` / `⌘O` / `/` quick switch over tags and notes.
 - **Live update** — save a note in Obsidian; open tabs re-render.
 - **Local only** — no accounts, no cloud, no telemetry, no vault writes.
@@ -131,4 +132,4 @@ Architecture and data flow: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ## License
 
-No open-source license has been granted yet. All rights reserved unless a license is added.
+MIT. See [LICENSE](LICENSE).

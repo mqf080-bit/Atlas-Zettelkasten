@@ -2357,3 +2357,24 @@ a.btn {
   background: var(--hover);
   color: var(--ink);
 }
+
+/* External is a source type, not a maturity stage. */
+.quick-badge.external {
+  color: var(--status-external);
+}
+
+.external-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--status-external);
+}
+
+.status-badge.external {
+  border-color: color-mix(in srgb, var(--status-external) 55%, var(--line));
+}
+
+.status-badge.external .stage {
+  color: var(--ink-3);
+}

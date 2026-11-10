@@ -73,6 +73,27 @@ Use exactly one of:
 
 `#index` and `#external` are **types**, not lifecycle stages, and do not replace a status.
 
+## External sources (`#external`)
+
+Paste an external source into a note and mark it:
+
+```markdown
+Status: #external
+
+Tags:
+[[Politics]]
+[[International]]
+```
+
+- `#external` means **source type**, not maturity. It deliberately has **no stage / 5**.
+- It renders as the pink external ring and gets its own **EXTERNAL** Index group.
+- External notes are excluded from:
+  - lifecycle counts and status sparklines,
+  - “unsorted” / unfiled counts.
+- External notes still participate in tag memberships, anchoring, curation, and bridges when they link tags.
+- If an external note accidentally also contains `#raw`/`#5th`/etc., the type still wins for presentation; external is not treated as a maturity stage.
+- Use the footer **N external** filter or `is:external` in search to find them.
+
 ## Index semantics
 
 An `#index` note is a curator.

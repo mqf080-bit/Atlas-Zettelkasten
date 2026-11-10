@@ -89,7 +89,7 @@ export function buildModel({ vault, synthetic = null, demoOn = true, metaTags = 
       bridge: false,
       span: 0,
       bridgeTags: [],
-      kind: raw.status ? "note" : (raw.kind || "unfiled"),
+      kind: raw.isExternal || raw.kind === "external" ? "external" : raw.status ? "note" : (raw.kind || "unfiled"),
     });
   }
 
@@ -252,7 +252,7 @@ export function buildModel({ vault, synthetic = null, demoOn = true, metaTags = 
     tag.dist = Object.fromEntries(STATUS_KEYS.map((k) => [k, 0]));
     for (const title of tag.branchNotes) {
       const n = notesByTitle.get(title);
-      if (n?.status && tag.dist[n.status] != null) tag.dist[n.status] += 1;
+      if (n?.status && n.kind !== "external" && tag.dist[n.status] != null) tag.dist[n.status] += 1;
     }
   }
 
@@ -260,8 +260,9 @@ export function buildModel({ vault, synthetic = null, demoOn = true, metaTags = 
   const tagList = [...tags.values()];
   const roots = tagList.filter((t) => !t.parent).sort((a, b) => a.name.localeCompare(b.name));
   const bridgeNotes = notes.filter((n) => n.bridge);
-  const unfiledNotes = notes.filter((n) => !n.home && !n.status);
-  const stagedNotes = notes.filter((n) => n.status);
+  const unfiledNotes = notes.filter((n) => !n.home && !n.status && n.kind !== "external");
+  const externalNotes = notes.filter((n) => n.kind === "external");
+  const stagedNotes = notes.filter((n) => n.status && n.kind !== "external");
 
   const statusCounts = Object.fromEntries(STATUS_KEYS.map((k) => [k, 0]));
   for (const note of stagedNotes) if (statusCounts[note.status] != null) statusCounts[note.status] += 1;
@@ -294,12 +295,14 @@ export function buildModel({ vault, synthetic = null, demoOn = true, metaTags = 
     tagsByName: tags,
     bridgeNotes,
     unfiledNotes,
+    externalNotes,
     stagedNotes,
     statusCounts,
     counts: {
       notes: notes.length,
       staged: stagedNotes.length,
       unfiled: unfiledNotes.length,
+      external: externalNotes.length,
       tags: tagList.length,
       indexes: tagList.filter((t) => t.isIndex).length,
       bridges: bridgeNotes.length,
