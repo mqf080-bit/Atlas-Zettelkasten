@@ -2405,3 +2405,24 @@ a.btn {
 .atlas-canvas.has-focus .note.selected {
   z-index: 16;
 }
+
+/* Expanded focus relevance: siblings, secondary membership tags, and roots. */
+.atlas-canvas.has-focus .tag-card.is-relevant,
+.atlas-canvas.has-focus .tag-station.is-relevant {
+  z-index: 12;
+}
+
+.atlas-canvas.has-focus .tag-card.is-relevant:hover,
+.atlas-canvas.has-focus .tag-station.is-relevant:hover,
+.atlas-canvas.has-focus .tag-station.is-relevant.is-hover {
+  z-index: 15;
+}
+
+/* Unselected tags are slightly more legible while a hover dims the rest. */
+.canvas-world.has-hover .tag-station:not(.is-hover):not(.is-related) {
+  opacity: 0.48;
+}
+
+.canvas-world.has-hover .note:not(.is-hover):not(.is-related) {
+  opacity: 0.42;
+}

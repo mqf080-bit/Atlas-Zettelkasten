@@ -570,14 +570,44 @@ function tagMetaRight(tag, active) {
 
 function focusRelations() {
   const focus = state.focus ? model.tagsByName.get(state.focus) : null;
-  if (!focus) return { focus: null, ancestors: new Set(), descendants: new Set() };
+  if (!focus) {
+    return {
+      focus: null,
+      ancestors: new Set(),
+      descendants: new Set(),
+      siblings: new Set(),
+      relevant: new Set(),
+    };
+  }
   const ancestors = new Set(tagParents(focus, model.tagsByName));
   const descendants = new Set(
     tagSubtree(focus, model.tagsByName)
       .map((t) => t.name)
       .filter((name) => name !== focus.name)
   );
-  return { focus, ancestors, descendants };
+  const siblings = new Set();
+  for (const parentName of [focus.parent, ...ancestors]) {
+    const parent = parentName ? model.tagsByName.get(parentName) : null;
+    if (!parent) continue;
+    for (const child of parent.children) {
+      if (child !== focus.name) siblings.add(child);
+    }
+  }
+  const relevant = new Set([focus.name, ...ancestors, ...descendants, ...siblings]);
+  // A focused branch note can carry secondary memberships. Those tags and
+  // their ancestor roots are part of the focus context too (e.g. focusing
+  // Math must bring in AI/Language/ML via Compression of language).
+  for (const title of focus.branchNotes) {
+    const note = model.notesByTitle.get(title);
+    if (!note) continue;
+    for (const tagName of note.tags) {
+      const tag = model.tagsByName.get(tagName);
+      if (!tag || tag.meta) continue;
+      relevant.add(tagName);
+      for (const parentName of tagParents(tag, model.tagsByName)) relevant.add(parentName);
+    }
+  }
+  return { focus, ancestors, descendants, siblings, relevant };
 }
 
 function tagCardHtml(tag, { node, focus = false, relation = null }) {
@@ -588,6 +618,7 @@ function tagCardHtml(tag, { node, focus = false, relation = null }) {
   if (focus) classes.push("hub");
   if (relation?.ancestor) classes.push("is-ancestor");
   if (relation?.descendant) classes.push("is-descendant");
+  if (relation?.relevant) classes.push("is-relevant");
   if (tag.synthetic) classes.push("synthetic");
   const metaLeft = activeTagMeta(tag);
   const right = tagMetaRight(tag, true);
@@ -622,6 +653,7 @@ function ambientTagHtml(tag, node, { lastFocus = false, relation = null } = {}) 
   if (lastFocus && !state.focus) classes.push("last-focus");
   if (relation?.ancestor) classes.push("is-ancestor");
   if (relation?.descendant) classes.push("is-descendant");
+  if (relation?.relevant) classes.push("is-relevant");
   const synth = tag.synthetic ? synthMark() : "";
   const index = tag.isIndex ? `<span class="station-index">INDEX</span>` : "";
   const last = lastFocus && !state.focus ? `<span class="station-last">last</span>` : "";
@@ -916,12 +948,7 @@ function applyFocusRanks(nodes) {
       node.focusRank = 1.4;
     } else if (node.kind === "tag") {
       const name = node.tag?.name;
-      node.focusRank =
-        name === relations.focus.name ||
-        relations.ancestors.has(name) ||
-        relations.descendants.has(name)
-          ? 1
-          : 0.15;
+      node.focusRank = relations.relevant.has(name) ? 1 : 0.15;
     } else {
       node.focusRank = 1;
     }
@@ -1039,13 +1066,30 @@ function stepGraph(graph, alpha) {
   }
 
   for (const edge of graph.edges) {
-    // Shared-note and note-tag lines are annotation. Notes sit on their
-    // home orbit, tags sit on the tree; neither line drags the other node
-    // into a pile. Only index-tree edges carry spring force.
-    if (edge.type === "affinity") continue;
     const a = graph.byId.get(edge.source);
     const b = graph.byId.get(edge.target);
     if (!a || !b) continue;
+    if (edge.type === "affinity") {
+      // Dotted links stay annotation in the flat graph. Inside a focus they
+      // get a very light spring only when both tags are relevant, which is
+      // what pulls the secondary AI/Language/ML group toward Information
+      // Theory without clustering the whole atlas.
+      if (!state.focus || !sameFocusLayer(a, b)) continue;
+      const adx = b.x - a.x;
+      const ady = b.y - a.y;
+      const adist = Math.max(0.01, Math.sqrt(adx * adx + ady * ady));
+      const atarget = physics.distance * 1.15;
+      const aforce = ((adist - atarget) / adist) * linkK * 0.1 * alpha;
+      if (!a.dragging && !a.focusLocked) {
+        a.vx += adx * aforce;
+        a.vy += ady * aforce;
+      }
+      if (!b.dragging && !b.focusLocked) {
+        b.vx -= adx * aforce;
+        b.vy -= ady * aforce;
+      }
+      continue;
+    }
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const dist = Math.max(0.01, Math.sqrt(dx * dx + dy * dy));
@@ -1795,6 +1839,7 @@ function atlasHtml() {
       const relation = {
         ancestor: relations.ancestors.has(tag.name),
         descendant: relations.descendants.has(tag.name),
+        relevant: relations.relevant.has(tag.name),
       };
       if (tag.name === state.focus) {
         return tagCardHtml(tag, { node, focus: true, relation });
