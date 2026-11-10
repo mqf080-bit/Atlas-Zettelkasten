@@ -905,9 +905,34 @@ function nodeCx(node) {
   return node.labelSide === "left" ? node.x - 104 : node.x + 104;
 }
 
+function applyFocusRanks(nodes) {
+  const relations = focusRelations();
+  const hasFocus = Boolean(relations.focus);
+  for (const node of nodes) {
+    if (!hasFocus) {
+      node.focusRank = 1;
+    } else if (node.kind === "note") {
+      // Notes are the focused branch; keep them above and harder to displace.
+      node.focusRank = 1.4;
+    } else if (node.kind === "tag") {
+      const name = node.tag?.name;
+      node.focusRank =
+        name === relations.focus.name ||
+        relations.ancestors.has(name) ||
+        relations.descendants.has(name)
+          ? 1
+          : 0.15;
+    } else {
+      node.focusRank = 1;
+    }
+  }
+  return relations;
+}
+
 function stepGraph(graph, alpha) {
   if (!graph) return;
   const { nodes } = graph;
+  applyFocusRanks(nodes);
   const physics = state.physics;
   const cx = WORLD.w / 2;
   const cy = WORLD.h / 2;
@@ -972,14 +997,18 @@ function stepGraph(graph, alpha) {
       const dist2 = Math.max(900, dx * dx + dy * dy);
       const dist = Math.sqrt(dist2);
       const force = Math.min(2.8, (repelK / dist2) * alpha);
+      const pa = a.focusRank || 1;
+      const pb = b.focusRank || 1;
+      const aw = (2 * pb) / (pa + pb);
+      const bw = (2 * pa) / (pa + pb);
 
       if (!a.dragging && !a.focusLocked) {
-        a.vx -= (dx / dist) * force;
-        a.vy -= (dy / dist) * force;
+        a.vx -= (dx / dist) * force * aw;
+        a.vy -= (dy / dist) * force * aw;
       }
       if (!b.dragging && !b.focusLocked) {
-        b.vx += (dx / dist) * force;
-        b.vy += (dy / dist) * force;
+        b.vx += (dx / dist) * force * bw;
+        b.vy += (dy / dist) * force * bw;
       }
 
       // AABB collision for the label/card boxes, keeping the space around
@@ -991,12 +1020,12 @@ function stepGraph(graph, alpha) {
         const sy = dy === 0 ? (j % 2 ? 1 : -1) : Math.sign(dy);
         if (overlapX < overlapY) {
           const push = overlapX * 0.8 * alpha;
-          if (!a.dragging && !a.focusLocked) a.vx -= sx * push;
-          if (!b.dragging && !b.focusLocked) b.vx += sx * push;
+          if (!a.dragging && !a.focusLocked) a.vx -= sx * push * aw;
+          if (!b.dragging && !b.focusLocked) b.vx += sx * push * bw;
         } else {
           const push = overlapY * 0.8 * alpha;
-          if (!a.dragging && !a.focusLocked) a.vy -= sy * push;
-          if (!b.dragging && !b.focusLocked) b.vy += sy * push;
+          if (!a.dragging && !a.focusLocked) a.vy -= sy * push * aw;
+          if (!b.dragging && !b.focusLocked) b.vy += sy * push * bw;
         }
       }
     }
@@ -1017,13 +1046,17 @@ function stepGraph(graph, alpha) {
       physics.distance *
       (edge.type === "note" ? 1.05 : 1.55);
     const force = ((dist - target) / dist) * linkK * edge.strength * alpha;
+    const pa = a.focusRank || 1;
+    const pb = b.focusRank || 1;
+    const aw = (2 * pb) / (pa + pb);
+    const bw = (2 * pa) / (pa + pb);
     if (!a.dragging && !a.focusLocked) {
-      a.vx += dx * force;
-      a.vy += dy * force;
+      a.vx += dx * force * aw;
+      a.vy += dy * force * aw;
     }
     if (!b.dragging && !b.focusLocked) {
-      b.vx -= dx * force;
-      b.vy -= dy * force;
+      b.vx -= dx * force * bw;
+      b.vy -= dy * force * bw;
     }
   }
 
@@ -1097,6 +1130,7 @@ function declutterNoteLabels(graph) {
 }
 
 function resolveCollisions(graph, iterations = 2) {
+  applyFocusRanks(graph.nodes);
   for (let pass = 0; pass < iterations; pass += 1) {
     for (let i = 0; i < graph.nodes.length; i += 1) {
       const a = graph.nodes[i];
@@ -1122,12 +1156,16 @@ function resolveCollisions(graph, iterations = 2) {
           if (xFirst) a.x -= s * overlap;
           else a.y -= s * overlap;
         } else {
+          const pa = a.focusRank || 1;
+          const pb = b.focusRank || 1;
+          const aw = (2 * pb) / (pa + pb);
+          const bw = (2 * pa) / (pa + pb);
           if (xFirst) {
-            a.x -= s * overlap * 0.5;
-            b.x += s * overlap * 0.5;
+            a.x -= s * overlap * 0.5 * aw;
+            b.x += s * overlap * 0.5 * bw;
           } else {
-            a.y -= s * overlap * 0.5;
-            b.y += s * overlap * 0.5;
+            a.y -= s * overlap * 0.5 * aw;
+            b.y += s * overlap * 0.5 * bw;
           }
         }
       }
@@ -1774,7 +1812,7 @@ function atlasHtml() {
     .join("") || "";
 
   return `
-    <div class="atlas-canvas" id="atlas-canvas">
+    <div class="atlas-canvas${state.focus ? " has-focus" : ""}" id="atlas-canvas">
       <div class="canvas-world" style="transform:translate(${state.camera.x}px, ${state.camera.y}px) scale(${state.camera.zoom})">
         <svg class="graph-wires" aria-hidden="true">${edgesHtml(relations)}</svg>
         ${tagNodes}
@@ -2652,6 +2690,13 @@ function clearFocus() {
   state.simAlpha = Math.max(state.simAlpha, 1);
   // Keep the camera; notes disappear, the tag graph closes the gap by force.
   renderAll();
+  if (state.graph) {
+    // The focus hierarchy has been removed; push any overlapped cards apart
+    // before the next physics tick, then keep settling.
+    resolveCollisions(state.graph, 6);
+    syncGraphPositions();
+    updateGraphDom();
+  }
 }
 
 function toggleTheme() {

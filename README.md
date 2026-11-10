@@ -17,6 +17,7 @@ Tag Atlas is not another force-directed graph of every note. It treats your tag 
 - **External sources** — `#external` notes are a type, not a maturity stage: pink ring, dedicated Index group, no unfiled/no maturity count.
 - **Search** — `Ctrl+O` / `⌘O` / `/` quick switch over tags and notes.
 - **Live update** — save a note in Obsidian; open tabs re-render.
+- **Focus hierarchy** — a focused branch sits above unrelated tags and outranks them in layout; releasing restores the flat graph and re-spreads overlaps.
 - **Local only** — no accounts, no cloud, no telemetry, no vault writes.
 
 ## Requirements
